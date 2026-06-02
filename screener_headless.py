@@ -90,7 +90,7 @@ def screen_stock(ticker: str, min_rs: float = 70) -> dict:
         sma50 = template.sma_50.iloc[-1]
         sma150 = template.sma_150.iloc[-1]
         sma200 = template.sma_200.iloc[-1]
-        rs = relative_strength(ticker, close)
+        rs = relative_strength(close)
 
         # Check conditions
         conditions = {
