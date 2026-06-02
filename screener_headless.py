@@ -10,9 +10,11 @@ import argparse
 import sys
 from datetime import datetime
 from pathlib import Path
+from io import StringIO
 
 import pandas as pd
 import yfinance as yf
+import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from indicators import TrendTemplate, relative_strength, sma
@@ -22,10 +24,12 @@ def get_sp500_tickers():
     """Fetch S&P 500 tickers from Wikipedia"""
     try:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        tables = pd.read_html(url, headers=headers)
-        df = tables[0]
-        return df["Symbol"].tolist()
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        df = pd.read_html(StringIO(response.text))[0]
+        symbols = df["Symbol"].str.replace('.', '-', regex=False).tolist()
+        return symbols
     except Exception as e:
         print(f"Warning: Could not fetch S&P 500 tickers: {e}")
         return []
@@ -35,10 +39,19 @@ def get_nasdaq_tickers():
     """Fetch NASDAQ-100 tickers"""
     try:
         url = "https://en.wikipedia.org/wiki/Nasdaq-100"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        tables = pd.read_html(url, headers=headers)
-        df = tables[4]
-        return df["Ticker"].tolist()
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        tables = pd.read_html(StringIO(response.text))
+        for t in tables:
+            cols = [str(c).lower() for c in t.columns]
+            if any('ticker' in c or 'symbol' in c for c in cols):
+                col = [c for c in t.columns if 'ticker' in str(c).lower() or 'symbol' in str(c).lower()][0]
+                syms = t[col].dropna().tolist()
+                syms = [str(s).strip() for s in syms if str(s).strip().isalpha()]
+                if len(syms) > 50:
+                    return syms
+        return []
     except Exception as e:
         print(f"Warning: Could not fetch NASDAQ tickers: {e}")
         return []
@@ -48,9 +61,10 @@ def get_dow_tickers():
     """Fetch DOW tickers"""
     try:
         url = "https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        tables = pd.read_html(url, headers=headers)
-        df = tables[1]
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        df = pd.read_html(StringIO(response.text))[1]
         return df["Symbol"].tolist()
     except Exception as e:
         print(f"Warning: Could not fetch DOW tickers: {e}")
