@@ -22,7 +22,8 @@ def get_sp500_tickers():
     """Fetch S&P 500 tickers from Wikipedia"""
     try:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-        tables = pd.read_html(url)
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        tables = pd.read_html(url, headers=headers)
         df = tables[0]
         return df["Symbol"].tolist()
     except Exception as e:
@@ -34,7 +35,8 @@ def get_nasdaq_tickers():
     """Fetch NASDAQ-100 tickers"""
     try:
         url = "https://en.wikipedia.org/wiki/Nasdaq-100"
-        tables = pd.read_html(url)
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        tables = pd.read_html(url, headers=headers)
         df = tables[4]
         return df["Ticker"].tolist()
     except Exception as e:
@@ -46,7 +48,8 @@ def get_dow_tickers():
     """Fetch DOW tickers"""
     try:
         url = "https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average"
-        tables = pd.read_html(url)
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        tables = pd.read_html(url, headers=headers)
         df = tables[1]
         return df["Symbol"].tolist()
     except Exception as e:
