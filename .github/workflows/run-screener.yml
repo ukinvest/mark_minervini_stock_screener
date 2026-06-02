@@ -1,0 +1,72 @@
+name: Run Stock Screener
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC (after market closes)
+    - cron: '0 13 * * 1'
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      index:
+        description: 'Index to screen (S&P 500, NASDAQ, DOW, or leave empty for all)'
+        required: false
+        default: ''
+      min_rs:
+        description: 'Minimum RS rating (default: 70)'
+        required: false
+        default: '70'
+
+jobs:
+  screen-stocks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run stock screener
+        run: |
+          python screener_headless.py \
+            --output results/screener_results_$(date +\%Y\%m\%d).csv \
+            --min-rs ${{ inputs.min_rs || '70' }}
+
+      - name: Upload results as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: screener-results
+          path: results/
+          retention-days: 90
+
+      - name: Commit and push results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if [ -n "$(git status --porcelain results/)" ]; then
+            git add results/
+            git commit -m "chore: update stock screener results $(date +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

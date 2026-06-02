@@ -1,0 +1,2 @@
+# Stock screener results will be saved here by GitHub Actions
+# Each run creates a CSV file with the date: screener_results_YYYYMMDD.csv

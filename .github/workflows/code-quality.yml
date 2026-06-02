@@ -1,0 +1,44 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pylint flake8 black isort
+
+      - name: Check code formatting with Black
+        run: black --check .
+
+      - name: Check import sorting with isort
+        run: isort --check-only .
+
+      - name: Lint with Flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        continue-on-error: true
+
+      - name: Lint with Pylint
+        run: pylint stock_screener.py indicators.py
+        continue-on-error: true
+
+      - name: Verify requirements.txt
+        run: pip check
