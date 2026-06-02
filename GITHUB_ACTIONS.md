@@ -1,10 +1,10 @@
 # GitHub Actions Setup
 
-This project includes GitHub Actions workflows to automatically run the stock screener and maintain code quality.
+This project includes GitHub Actions workflows to automatically run the stock screener.
 
-## Workflows
+## Workflow
 
-### 1. Run Stock Screener (`run-screener.yml`)
+### Run Stock Screener (`run-screener.yml`)
 Automatically runs the stock screener and saves results to CSV.
 
 **Trigger:**
@@ -29,20 +29,6 @@ Automatically runs the stock screener and saves results to CSV.
 2. Select **"Run Stock Screener"**
 3. Click **"Run workflow"**
 4. (Optional) Customize inputs
-
-### 2. Code Quality Checks (`code-quality.yml`)
-Validates code formatting and imports on every push and pull request.
-
-**Trigger:**
-- Push to `main` or `develop` branches
-- Pull requests to `main` or `develop` branches
-
-**What it checks:**
-- **Black**: Code formatting consistency
-- **isort**: Import sorting
-- **Flake8**: PEP8 violations and potential errors
-- **Pylint**: Code quality and potential bugs
-- **pip check**: Dependency conflicts
 
 ## Setup Instructions
 
@@ -138,7 +124,6 @@ Add this to your README.md to show workflow status:
 
 ```markdown
 ![Run Stock Screener](https://github.com/YOUR_USERNAME/mark_minervini_stock_screener/actions/workflows/run-screener.yml/badge.svg)
-![Code Quality](https://github.com/YOUR_USERNAME/mark_minervini_stock_screener/actions/workflows/code-quality.yml/badge.svg)
 ```
 
 Replace `YOUR_USERNAME` with your actual GitHub username.
