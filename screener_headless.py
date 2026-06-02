@@ -71,37 +71,42 @@ def get_dow_tickers():
         return []
 
 
-def screen_stock(ticker: str, min_rs: float = 70) -> dict:
+def screen_stock(ticker: str, index_rs: float, min_rs: float = 70) -> dict:
     """Screen a single stock against Minervini's 8 Trend Template"""
     try:
-        # Download historical data
+        # Download historical data for the stock
         stock = yf.Ticker(ticker)
         hist = stock.history(period="1y")
 
         if hist.empty or len(hist) < 200:
             return None
 
-        # Calculate indicators
+        # Calculate moving averages
         close = hist["Close"]
-        template = TrendTemplate(close)
+        sma50_series = sma(close, 50)
+        sma150_series = sma(close, 150)
+        sma200_series = sma(close, 200)
 
         # Get latest values
         price = close.iloc[-1]
-        sma50 = template.sma_50.iloc[-1]
-        sma150 = template.sma_150.iloc[-1]
-        sma200 = template.sma_200.iloc[-1]
-        rs = relative_strength(close)
+        sma50 = sma50_series.iloc[-1]
+        sma150 = sma150_series.iloc[-1]
+        sma200 = sma200_series.iloc[-1]
 
-        # Check conditions
+        # Calculate RS for this stock
+        rs = relative_strength(close)
+        rs_rating_val = rs_rating(rs, index_rs) if index_rs > 0 else 0
+
+        # Check 8 conditions
         conditions = {
             "Condition1": price > sma150 and price > sma200,
             "Condition2": sma150 > sma200,
-            "Condition3": template.sma200_trending_up,
+            "Condition3": sma200 > close.iloc[-20] if len(close) >= 20 else False,
             "Condition4": sma50 > sma150 > sma200,
             "Condition5": price > sma50,
-            "Condition6": price >= hist["Close"].min() * 1.3,
-            "Condition7": price >= hist["Close"].max() * 0.75,
-            "Condition8": rs >= min_rs,
+            "Condition6": price >= close.min() * 1.3,
+            "Condition7": price >= close.max() * 0.75,
+            "Condition8": rs_rating_val >= min_rs,
         }
 
         passed = sum(conditions.values())
@@ -112,13 +117,12 @@ def screen_stock(ticker: str, min_rs: float = 70) -> dict:
             "sma50": round(sma50, 2),
             "sma150": round(sma150, 2),
             "sma200": round(sma200, 2),
-            "rs": round(rs, 1),
+            "rs_rating": round(rs_rating_val, 1),
             "conditions_passed": passed,
             "all_conditions_met": passed == 8,
             **{f"cond_{k+1}": v for k, v in enumerate(conditions.values())},
         }
     except Exception as e:
-        print(f"Error screening {ticker}: {e}")
         return None
 
 
@@ -149,6 +153,21 @@ def main():
 
     args = parser.parse_args()
 
+    # Calculate index RS (SPY) once
+    print("Calculating market RS...")
+    try:
+        spy = yf.Ticker("SPY")
+        spy_hist = spy.history(period="1y")
+        if spy_hist.empty or len(spy_hist) < 200:
+            print("Could not fetch SPY data. Using default RS of 1.0")
+            index_rs = 1.0
+        else:
+            index_rs = relative_strength(spy_hist["Close"])
+            print(f"Market RS: {index_rs:.2f}")
+    except Exception as e:
+        print(f"Warning: Could not calculate market RS: {e}")
+        index_rs = 1.0
+
     # Get tickers
     print(f"Fetching {args.index.upper()} tickers...")
     if args.index == "sp500":
@@ -168,7 +187,7 @@ def main():
     results = []
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
         futures = {
-            executor.submit(screen_stock, ticker, args.min_rs): ticker
+            executor.submit(screen_stock, ticker, index_rs, args.min_rs): ticker
             for ticker in tickers
         }
 
